@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from PyQt4 import QtGui
+from PyQt4 import QtCore, QtGui
+from PyQt4.phonon import Phonon
 
 import sys
 
@@ -72,6 +73,24 @@ class Ship:
     """
     def __eq__(self, ship_object):
         return self._length == ship_object._length and self._x_coord == ship_object._x_coord and self._y_coord == ship_object._y_coord and self._horizontal == ship_object._horizontal
+
+class Key(QtCore.QObject):
+
+    def __init__(self, soundFile, parent=None):
+        super(Key, self).__init__(parent)
+
+        self.soundFile = soundFile
+
+        self.mediaObject = Phonon.MediaObject(self)
+        self._audioOutput = Phonon.AudioOutput(Phonon.MusicCategory, self)
+        self._path = Phonon.createPath(self.mediaObject, self._audioOutput)
+        self.mediaSource = Phonon.MediaSource(soundFile)
+        self.mediaObject.setCurrentSource(self.mediaSource)
+
+    def play(self):
+        self.mediaObject.stop()
+        self.mediaObject.seek(0)
+        self.mediaObject.play()
 
 class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
 
@@ -149,7 +168,6 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
 
         # definition of message box
         self.msg = QtGui.QMessageBox()
-        self.msg.setIcon(QtGui.QMessageBox.Information)
         self.msg.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
 
         # setup of new game
@@ -188,16 +206,31 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
                         if self._destroyedShipsCounter == 5:
                             self.msg.setText("Congratulations! You destroyed all ships.")
                             self.msg.setWindowTitle("Hit and sunk!")
+                            iconMsg = QtGui.QPixmap("h-bomb.jpg")
+                            iconMsg = iconMsg.scaled(100, 100, QtCore.Qt.KeepAspectRatio,
+                                                     transformMode = QtCore.Qt.SmoothTransformation)
+                            self.msg.setIconPixmap(iconMsg)
                             self.msg.show()
+                            Key("explosion.wav", self.msg).play()
                             self.click_all_buttons()
                         else:
                             self.msg.setText("Congratulations! The ship of length " + str(ship.l) + " was sunk.")
                             self.msg.setWindowTitle("Hit and sunk!")
+                            iconMsg = QtGui.QPixmap("sinking-ship.jpg")
+                            iconMsg = iconMsg.scaled(100, 100, QtCore.Qt.KeepAspectRatio,
+                                                     transformMode = QtCore.Qt.SmoothTransformation)
+                            self.msg.setIconPixmap(iconMsg)
                             self.msg.show()
+                            Key("ship_sink.mp3", self.msg).play()
                     else:
                         self.msg.setText("You hit the ship.")
                         self.msg.setWindowTitle("Hit!")
+                        iconMsg = QtGui.QPixmap("bomb.png")
+                        iconMsg = iconMsg.scaled(100, 100, QtCore.Qt.KeepAspectRatio,
+                                                 transformMode = QtCore.Qt.SmoothTransformation)
+                        self.msg.setIconPixmap(iconMsg)
                         self.msg.show()
+                        Key("blast.wav", self.msg).play()
         else:
             button.setStyleSheet(designShip._fromUtf8("background-color: rgb(10, 105, 148);"))
 
