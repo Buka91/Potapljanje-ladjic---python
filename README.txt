@@ -1,0 +1,1 @@
+Run file battleShip.py in Python IDLE or PyCharm or in some other python editor. Version Python 2.7.12. is used.
