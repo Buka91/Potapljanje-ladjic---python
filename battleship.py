@@ -226,6 +226,7 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
             try:
                 file = open(open_dialog.selectedFiles()[0], "r")
                 content = file.readlines()
+                file.close()
                 try:
                     layout = eval(content[0])
                     shiplist = eval(content[1])
