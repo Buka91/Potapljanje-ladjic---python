@@ -2,12 +2,10 @@
 
 from PyQt4 import QtCore, QtGui
 from PyQt4.phonon import Phonon
-
 import sys
+import random
 
 import designShip
-
-import random
 
 class Ship:
 
@@ -100,7 +98,11 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
 
     _shipList = list()
 
+    _buttonClicked = list() # list of indices of clicked button -> information for saving/loading
+
     _destroyedShipsCounter = 0
+
+    _nmbOfHits = [0, 0, 0, 0, 0] # number of times each ship was hit
 
     """
     reset layout for new game
@@ -119,6 +121,9 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
         yCoords = range(15)
         self.set_layout()
         self._shipList = list()
+        self._buttonClicked = list()
+        for i in range(5):
+            self._nmbOfHits[i] = 0
         self._destroyedShipsCounter = 0
 
         pos = ["horizontal", "vertical"]
@@ -170,38 +175,152 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
         self.msg = QtGui.QMessageBox()
         self.msg.setStandardButtons(QtGui.QMessageBox.Ok | QtGui.QMessageBox.Cancel)
 
+        # definition of error box
+        self.errMsg = QtGui.QErrorMessage()
+        self.errMsg.setWindowTitle("Error")
+
         # setup of new game
         self.new_game()
 
         # click even for each button is the same
-        self.buttonGroup = QtGui.QButtonGroup(self)
-        for button in self.centralwidget.findChildren(QtGui.QAbstractButton):
-            self.buttonGroup.addButton(button)
         self.buttonGroup.buttonClicked.connect(self.handleButtonClicked)
-        self.actionClose.triggered.connect(QtGui.qApp.quit) # QtGui.qApp.quit closes main window
         self.actionNew_Game.triggered.connect(self.set_new_game)
+        self.actionSave_Game.triggered.connect(self.file_save)
+        self.actionLoad_Game.triggered.connect(self.file_load)
+        self.actionQuit.triggered.connect(QtGui.qApp.quit)  # QtGui.qApp.quit closes main window
 
     def click_all_buttons(self):
         for button in self.centralwidget.findChildren(QtGui.QAbstractButton):
             if button.isEnabled():
                 self.handleButtonClicked(button)
+                self._buttonClicked.append(self.buttonGroup.id(button))
 
     def set_new_game(self):
-        for button in self.centralwidget.findChildren(QtGui.QAbstractButton):
-            button.setEnabled(True)
-            button.setStyleSheet(designShip._fromUtf8("")) # reset button background-color
+        for btn_id in self._buttonClicked:
+            self.buttonGroup.button(btn_id).setEnabled(True)
+            self.buttonGroup.button(btn_id).setStyleSheet(designShip._fromUtf8("")) # reset button background-color
         self.new_game()
+
+    def file_save(self):
+        export_dialog = QtGui.QFileDialog()
+        export_dialog.setWindowTitle("Save Game")
+        export_dialog.setAcceptMode(QtGui.QFileDialog.AcceptSave)
+        export_dialog.setNameFilter("SAV files (*.sav)")
+        export_dialog.setDefaultSuffix("sav")
+        if export_dialog.exec_() == QtGui.QFileDialog.Accepted:
+            file = open(export_dialog.selectedFiles()[0], 'w')
+            file.write(str(self._layout) + "\n")
+            file.write(str(self._shipList) + "\n")
+            file.write(str(self._buttonClicked) + "\n")
+            file.write(str(self._nmbOfHits) + "\n")
+            file.write(str(self._destroyedShipsCounter))
+            file.close()
+
+    def file_load(self):
+        open_dialog = QtGui.QFileDialog()
+        open_dialog.setWindowTitle("Load Game")
+        open_dialog.setAcceptMode(QtGui.QFileDialog.AcceptOpen)
+        open_dialog.setNameFilter("SAV files (*.sav)")
+        open_dialog.setDefaultSuffix("sav")
+        if open_dialog.exec_() == QtGui.QFileDialog.Accepted:
+            try:
+                file = open(open_dialog.selectedFiles()[0], "r")
+                content = file.readlines()
+                try:
+                    layout = eval(content[0])
+                    shiplist = eval(content[1])
+                    buttons = eval(content[2])
+                    nmbHits = eval(content[3])
+                    counter = eval(content[4])
+                    # check if objects are appropriate type
+                    if not isinstance(layout, list) or not isinstance(shiplist, list) or not isinstance(buttons, list) or not isinstance(nmbHits, list) or not isinstance(counter, int):
+                        self.errMsg.showMessage("Wrong file opened. At least one object is not appropriate type.")
+                        self.errMsg.show()
+                        return
+                    if len(layout) != 15 or len(shiplist) != 5 or len(nmbHits) != 5 or counter < 0 or counter > 5:
+                        self.errMsg.showMessage("Wrong file opened. At least one object is out of range.")
+                        self.errMsg.show()
+                        return
+                    for i in range(15):
+                        # layout must be 2-dimensional list
+                        if not isinstance(layout[i], list):
+                            self.errMsg.showMessage("Wrong file opened. Layout list must be 2-dimensional.")
+                            self.errMsg.show()
+                            return
+                        # layout must be 2-dimensional list 15x15
+                        if len(layout[i]) != 15:
+                            self.errMsg.showMessage("Wrong file opened. Layout list must be 2-dimensional 15 x 15.")
+                            self.errMsg.show()
+                            return
+                        for j in range(15):
+                            # layout must contain 0 or 1
+                            if layout[i][j] != 0 and layout[i][j] != 1:
+                                self.errMsg.showMessage("Wrong file opened. Layout values must be between 0 or 1.")
+                                self.errMsg.show()
+                                return
+                    for i in range(5):
+                        # shiplist must contain objects of type Ship
+                        if not isinstance(shiplist[i], Ship):
+                            self.errMsg.showMessage("Wrong file opened. Object of type Ship cannot be found.")
+                            self.errMsg.show()
+                            return
+                    for i in range(len(buttons)):
+                        # buttonlist must contain indices between -226 and -2
+                        if buttons[i] < -226 or buttons[i] > -2:
+                            self.errMsg.showMessage("Wrong file opened. Button index is out of range.")
+                            self.errMsg.show()
+                            return
+                    # number of hits must be integers between 0 and 5
+                    for i in range(5):
+                        if not isinstance(nmbHits[i], int):
+                            self.errMsg.showMessage("Wrong file opened. Number of hits must be integers between 0 and 5.")
+                            self.errMsg.show()
+                            return
+                        if nmbHits[i] < 0 or nmbHits[i] > 5:
+                            self.errMsg.showMessage("Wrong file opened. Number of hits must be integers between 0 and 5.")
+                            self.errMsg.show()
+                            return
+                    # first we need to reset buttons that were clicked in current game
+                    for btn_id in self._buttonClicked:
+                        self.buttonGroup.button(btn_id).setEnabled(True)
+                        self.buttonGroup.button(btn_id).setStyleSheet(designShip._fromUtf8(""))
+                    self._layout = layout
+                    self._shipList = shiplist
+                    self._buttonClicked = buttons
+                    self._nmbOfHits = nmbHits
+                    for i in range(5):
+                        self._shipList[i]._hit = self._nmbOfHits[i]
+                    self._destroyedShipsCounter = counter
+                    for btn_id in self._buttonClicked:
+                        self.buttonGroup.button(btn_id).setEnabled(False)
+                        btn_number = btn_id * (-1) - 2
+                        if self._layout[btn_number / 15][btn_number % 15] == 1:
+                            self.buttonGroup.button(btn_id).setStyleSheet(
+                                designShip._fromUtf8("background-color: rgb(0, 85, 0);"))
+                        else:
+                            self.buttonGroup.button(btn_id).setStyleSheet(
+                                designShip._fromUtf8("background-color: rgb(10, 105, 148);"))
+                except:
+                    self.errMsg.showMessage("Wrong file opened. Cannot evaluate appropriate objects.")
+                    self.errMsg.show()
+                    return
+            except:
+                self.errMsg.showMessage("Cannot open selected file.")
+                self.errMsg.show()
+                return
 
     def handleButtonClicked(self, button):
         button.setEnabled(False)
+        self._buttonClicked.append(self.buttonGroup.id(button))
         btn_number = self.buttonGroup.id(button)*(-1) - 2 # received index from -2 to -226 -> from 0 to 224
         xx = btn_number / 15
         yy = btn_number % 15
         if self._layout[xx][yy] == 1:
             button.setStyleSheet(designShip._fromUtf8("background-color: rgb(0, 85, 0);"))
-            for ship in self._shipList:
-                if ship.is_hit(yy, xx):
-                    if ship.sink():
+            for i in range(5):
+                if self._shipList[i].is_hit(yy, xx):
+                    self._nmbOfHits[i] += 1
+                    if self._shipList[i].sink():
                         self._destroyedShipsCounter += 1
                         if self._destroyedShipsCounter == 5:
                             self.msg.setText("Congratulations! You destroyed all ships.")
@@ -214,7 +333,7 @@ class BattleShipApp(QtGui.QMainWindow, designShip.Ui_MainWindow):
                             Key("explosion.wav", self.msg).play()
                             self.click_all_buttons()
                         else:
-                            self.msg.setText("Congratulations! The ship of length " + str(ship.l) + " was sunk.")
+                            self.msg.setText("Congratulations! The ship of length " + str(self._shipList[i].l) + " was sunk.")
                             self.msg.setWindowTitle("Hit and sunk!")
                             iconMsg = QtGui.QPixmap("sinking-ship.jpg")
                             iconMsg = iconMsg.scaled(100, 100, QtCore.Qt.KeepAspectRatio,

@@ -7,7 +7,6 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import pyqtSlot
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -168,17 +167,18 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.label_16, 1, 0, 1, 1)
 
         # list of all buttons
-        self.buttonList = list()
+        self.buttonGroup = QtGui.QButtonGroup(self)
         for i in range(225):
-            self.buttonList.append(QtGui.QToolButton(self.centralwidget))
+            button = QtGui.QToolButton(self.centralwidget)
             sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
             sizePolicy.setHorizontalStretch(0)
             sizePolicy.setVerticalStretch(0)
-            sizePolicy.setHeightForWidth(self.buttonList[i].sizePolicy().hasHeightForWidth())
-            self.buttonList[i].setSizePolicy(sizePolicy)
-            self.buttonList[i].setText(_fromUtf8(""))
-            self.buttonList[i].setObjectName(_fromUtf8("toolButton_" + str(i)))
-            self.gridLayout.addWidget(self.buttonList[i], i / 15 + 1, i % 15 + 1, 1, 1)
+            sizePolicy.setHeightForWidth(button.sizePolicy().hasHeightForWidth())
+            button.setSizePolicy(sizePolicy)
+            button.setText(_fromUtf8(""))
+            button.setObjectName(_fromUtf8("toolButton_" + str(i)))
+            self.gridLayout.addWidget(button, i / 15 + 1, i % 15 + 1, 1, 1)
+            self.buttonGroup.addButton(button)
 
         self.label_17 = QtGui.QLabel(self.centralwidget)
         font = QtGui.QFont()
@@ -305,10 +305,20 @@ class Ui_MainWindow(object):
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
         self.actionNew_Game = QtGui.QAction(MainWindow)
         self.actionNew_Game.setObjectName(_fromUtf8("actionNew_Game"))
-        self.actionClose = QtGui.QAction(MainWindow)
-        self.actionClose.setObjectName(_fromUtf8("actionClose"))
+        self.actionNew_Game.setShortcut("Ctrl+N")
+        self.actionSave_Game = QtGui.QAction(MainWindow)
+        self.actionSave_Game.setObjectName(_fromUtf8("actionSave_Game"))
+        self.actionSave_Game.setShortcut("Ctrl+S")
+        self.actionLoad_Game = QtGui.QAction(MainWindow)
+        self.actionLoad_Game.setObjectName(_fromUtf8("actionLoad_Game"))
+        self.actionLoad_Game.setShortcut("Ctrl+L")
+        self.actionQuit = QtGui.QAction(MainWindow)
+        self.actionQuit.setObjectName(_fromUtf8("actionQuit"))
+        self.actionQuit.setShortcut("Ctrl+Q")
         self.menuFile.addAction(self.actionNew_Game)
-        self.menuFile.addAction(self.actionClose)
+        self.menuFile.addAction(self.actionSave_Game)
+        self.menuFile.addAction(self.actionLoad_Game)
+        self.menuFile.addAction(self.actionQuit)
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -348,4 +358,6 @@ class Ui_MainWindow(object):
         self.label_30.setText(_translate("MainWindow", "15", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
         self.actionNew_Game.setText(_translate("MainWindow", "New Game", None))
-        self.actionClose.setText(_translate("MainWindow", "Close", None))
+        self.actionSave_Game.setText(_translate("MainWindow", "Save Game", None))
+        self.actionLoad_Game.setText(_translate("MainWindow", "Load Game", None))
+        self.actionQuit.setText(_translate("MainWindow", "Quit", None))
